@@ -70,32 +70,38 @@ def format_as_hashtag(term):
     return f"#{term}" if term else None
 
 def construct_refinement_prompt(content_context, candidate_hashtags, desired_count):
-    """Constructs the prompt for the LLM refinement step."""
+    """Constructs an enhanced prompt for LLM refinement to generate highly engaging hashtags."""
+
     candidates_str = ", ".join(candidate_hashtags)
     prompt = f"""
-You are an expert X.com (Twitter) hashtag strategist. Your task is to refine a list of candidate hashtags based on the provided post context.
+You are an expert social media strategist, known for crafting viral hashtags on X.com (Twitter). Your goal is to select or create {desired_count} highly effective hashtags that are relevant, engaging, and likely to trend based on the provided content.
 
-**Goal:** Select or generate the BEST {desired_count} hashtags that are highly relevant to the content, potentially mix broad and niche appeal, and are suitable for maximizing engagement on X.com.
-
-**Post Content Context:**
+### Content Summary:
 \"\"\"
 {content_context}
 \"\"\"
 
-**Candidate Hashtags (extracted from context/user/trends):**
+### Candidate Hashtags:
 [{candidates_str}]
 
-**Instructions:**
-1.  Review the post context and the candidate hashtags.
-2.  Select the **top {desired_count} most effective hashtags** from the candidate list.
-3.  You MAY slightly modify candidates for better clarity or common usage (e.g., combine words, fix casing - though output should be lowercase).
-4.  If the candidates are poor or insufficient, you CAN suggest better, more relevant hashtags based *only* on the **Post Content Context**.
-5.  Ensure the final hashtags are formatted correctly (lowercase, no special characters besides letters/numbers).
-6.  Output ONLY a comma-separated list of the final {desired_count} hashtags (e.g., #hashtag1,#hashtag2,#hashtag3). Do NOT include any other text, explanations, or markdown formatting.
+### Your Task:
+1. Analyze the content and candidate hashtags.
+2. Choose or generate the BEST {desired_count} hashtags that:
+   - Are tightly connected to the content.
+   - Balance **broad appeal** with **niche relevance**.
+   - Are emotionally engaging or thought-provoking.
+   - Include **simple**, **clear**, and **impactful words**.
+   - Reflect current **social trends**, culture, or hot topics (if applicable).
+3. You MAY improve candidate hashtags by simplifying, merging, or rephrasing them for better engagement.
+4. If the candidate list is weak, suggest better hashtags using the content context.
+5. Output ONLY a **comma-separated list** of the final hashtags (no additional text or formatting).
 
-**Final Hashtag List (comma-separated):**
+### Example Format:
+#innovation,#futureofwork,#techtrends,#ai
+
+### Final Hashtags:
 """
-    logging.info(f"Constructed Refinement Prompt: {prompt[:500]}...")
+    logging.info(f"Constructed Enhanced Refinement Prompt: {prompt[:500]}...")
     return prompt
 
 

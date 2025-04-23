@@ -1,4 +1,4 @@
-# IEP: Hashtag Generator (Hybrid Method)
+# IEP: Hashtag Generator
 
 ## Purpose
 
