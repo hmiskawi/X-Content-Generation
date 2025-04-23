@@ -1,0 +1,20 @@
+# Filter IEP API
+
+A Flask API to classify generated social media content as:
+- OK ✅
+- CAN BE FILTERED ⚠️ (Needs rephrasing)
+- NOT OK ❌ (Profanity, controversial)
+
+## Inputs
+
+| Field   | Type   | Description                          |
+|---------|--------|--------------------------------------|
+| text    | string | The generated tweet or post text     |
+| theme   | string | (Optional) Content theme (e.g. meme) |
+
+## Example
+
+```bash
+curl -X POST http://localhost:5022/filter \
+  -H "Content-Type: application/json" \
+  -d '{"text": "This is kinda dumb lol", "theme": "serious"}'
