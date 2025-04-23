@@ -1,0 +1,6 @@
+Flask==2.3.3
+pytrends==4.9.2
+newsapi-python==0.2.7
+cachelib==0.10.2
+python-dotenv==1.0.0
+regex==2023.10.3 
