@@ -1,0 +1,4 @@
+Flask==2.3.3
+google-generativeai==0.4.0 # Match version used previously or use latest
+nltk==3.8.1               # Natural Language Toolkit for WordNet
+python-dotenv==1.0.0
