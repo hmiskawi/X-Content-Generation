@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EEP Post Generator</title>
+    <!-- Ensure correct path to css file -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Enhanced Engagement Post Generator</h1>
+
+        <form method="POST" enctype="multipart/form-data" action="/" class="card">
+            <div class="form-group">
+                <label for="username">X.com Username (Required):</label>
+                <input type="text" id="username" name="username" required value="{{ request.form.username or '' }}">
+                <small>Used for context analysis (past tweets).</small>
+            </div>
+
+            <div class="form-group">
+                <label for="keyword">Keyword / Topic (Optional):</label>
+                <input type="text" id="keyword" name="keyword" value="{{ request.form.keyword or '' }}">
+                <small>Guide the content generation. If blank, one might be derived.</small>
+            </div>
+
+            <!-- New Theme Dropdown -->
+            <div class="form-group">
+                <label for="theme">Content Theme:</label>
+                <select id="theme" name="theme">
+                    <option value="casual" {% if not request.form.theme or request.form.theme == 'casual' %}selected{% endif %}>
+                        Casual (Relaxed, friendly update)
+                    </option>
+                    <option value="serious" {% if request.form.theme == 'serious' %}selected{% endif %}>
+                        Serious (Formal, professional, informative)
+                    </option>
+                    <option value="promotional" {% if request.form.theme == 'promotional' %}selected{% endif %}>
+                        Promotional (Product, service, sale, event)
+                    </option>
+                     <option value="inspirational" {% if request.form.theme == 'inspirational' %}selected{% endif %}>
+                        Inspirational (Uplifting, motivational)
+                    </option>
+                    <option value="memes" {% if request.form.theme == 'memes' %}selected{% endif %}>
+                        Memes (Humorous, informal, internet culture)
+                    </option>
+                    <!-- Consider adding a 'General/Auto' option if the backend should decide without guidance -->
+                    <!-- <option value="auto" {% if request.form.theme == 'auto' %}selected{% endif %}>Auto-Detect</option> -->
+                </select>
+                <small>Influences filtering and generation style.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="image">Upload Image (Optional):</label>
+                <input type="file" id="image" name="image" accept="image/png, image/jpeg, image/gif">
+                <small>Provide an image, or one may be generated.</small>
+            </div>
+
+            <!-- Removed num_captions input -->
+
+            <button type="submit">Generate Post Suggestion</button>
+        </form>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="{{ category or 'info' }} card" role="alert">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+
+        {% if processing_message %}
+            <div class="status card">
+                <h2>Processing...</h2>
+                <p>{{ processing_message }}</p>
+                <!-- TODO: Add a CSS loading spinner -->
+            </div>
+        {% endif %}
+
+        {% if error %}
+            <div class="error card">
+                <h2>Error</h2>
+                <p>{{ error }}</p>
+            </div>
+        {% endif %}
+
+        {% if suggestion %}
+            <div class="result-box card">
+                <h2>Best Post Suggestion</h2>
+                <div class="suggestion">
+                    <p><strong>Status:</strong> {{ suggestion.status }}</p>
+                    <p><strong>Username:</strong> {{ suggestion.username }}</p>
+                    <p><strong>Keyword Used:</strong> {{ suggestion.selected_keyword }}</p>
+                    <p><strong>Predicted Engagement (Relative):</strong> {{ suggestion.predicted_relative_engagement | round(4) if suggestion.predicted_relative_engagement is not none else 'N/A' }}</p>
+                    <p><strong>Filter Status:</strong> <span class="status-{{ (suggestion.filter_status or 'error') | lower | replace(' ', '_') }}">{{ suggestion.filter_status or 'ERROR' }}</span></p>
+
+                    <hr>
+                    <h3>Suggested Text:</h3>
+                    <pre class="final-text">{{ suggestion.final_text_suggestion }}</pre>
+                    <hr>
+
+                    <h3>Components:</h3>
+                    <p><strong>Caption:</strong> {{ suggestion.generated_caption }}</p>
+                    <p><strong>Hashtags:</strong> {{ (suggestion.generated_hashtags or []) | join(' ') }}</p>
+
+                    {% if suggestion.has_media and suggestion.final_image_reference %}
+                        <p><strong>Image Reference:</strong>
+                            {% if suggestion.final_image_reference.startswith('http') %}
+                                <a href="{{ suggestion.final_image_reference }}" target="_blank">{{ suggestion.final_image_reference }}</a> (Generated URL)
+                                <br><img src="{{ suggestion.final_image_reference }}" alt="Generated Image Preview (Link may not work if temporary)" >
+                            {% else %}
+                                {{ suggestion.final_image_reference }} (Input Path - cannot display)
+                            {% endif %}
+                        </p>
+                        {% if suggestion.image_description %}
+                            <p><strong>Image Description (CV):</strong> {{ suggestion.image_description }}</p>
+                        {% endif %}
+                    {% else %}
+                        <p><strong>Image:</strong> None Used</p>
+                    {% endif %}
+
+                </div>
+                 <details>
+                    <summary>View Full Suggestion JSON</summary>
+                    <pre><code>{{ suggestion | tojson(indent=2) }}</code></pre>
+                </details>
+            </div>
+        {% endif %}
+    </div> {# End .container #}
+</body>
+</html>
