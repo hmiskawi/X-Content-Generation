@@ -104,7 +104,7 @@ def predict():
 
 # This part is mainly for local execution, not used by Docker CMD/Waitress
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5020)) # Use 5020 as default
+    port = int(os.environ.get("PORT", 5010)) # Use 5020 as default
     # Use Waitress for local testing as well to mimic production better
     try:
         from waitress import serve
