@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY IEP/hashtag-generator/ .
 
 # Make port 5002 available (using a different port than Caption Gen)
-EXPOSE 5002
+EXPOSE 5014
 
 # Define the command to run the application
 CMD ["python", "app.py"]
