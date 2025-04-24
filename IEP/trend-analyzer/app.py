@@ -166,4 +166,4 @@ def get_trends_endpoint():
 
 # --- Run the App ---
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5018, debug=False)
+    app.run(host='0.0.0.0', port=5006, debug=False)
