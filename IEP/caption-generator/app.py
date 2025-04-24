@@ -189,4 +189,4 @@ def generate_caption():
 if __name__ == '__main__':
     # Host '0.0.0.0' makes it accessible within the Docker network
     # Port 5001 is an example, choose a unique port for this IEP
-    app.run(host='0.0.0.0', port=5011, debug=False)
+    app.run(host='0.0.0.0', port=5001, debug=False)
