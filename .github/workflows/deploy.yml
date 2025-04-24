@@ -1,0 +1,118 @@
+name: Build, Push, and Deploy IEPs to Azure
+
+on:
+  push:
+    branches: [main]
+
+env:
+  ACR_NAME: myacrname
+  ACR_LOGIN_SERVER: myacrname.azurecr.io
+  RESOURCE_GROUP: my-resource-group
+  CONTAINER_ENV: iep-env
+  LOCATION: eastus # or your preferred Azure region
+
+jobs:
+  create-apps:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Create Container App Environment (if not exists)
+        run: |
+          az containerapp env show \
+            --name $CONTAINER_ENV \
+            --resource-group $RESOURCE_GROUP \
+          || az containerapp env create \
+            --name $CONTAINER_ENV \
+            --resource-group $RESOURCE_GROUP \
+            --location $LOCATION
+
+      - name: Create all container apps
+        run: |
+          declare -A ports=(
+            [caption-generator-iep]=5001
+            [hashtag-generator-iep]=5002
+            [image-generator-iep]=5003
+            [keyword-suggester-iep]=5004
+            [past-tweet-analyzer-iep]=5005
+            [trend-analyzer-iep]=5006
+            [computer-vision-iep]=5021
+            [filter-iep]=5022
+            [engagement-prediction-iep]=5010
+          )
+
+          for service in "${!ports[@]}"; do
+            az containerapp create \
+              --name "$service" \
+              --resource-group $RESOURCE_GROUP \
+              --environment $CONTAINER_ENV \
+              --image $ACR_LOGIN_SERVER/$service:latest \
+              --ingress external \
+              --target-port "${ports[$service]}" \
+              --registry-server $ACR_LOGIN_SERVER \
+              --query properties.configuration.ingress.fqdn \
+              || echo "Skipping if already exists"
+          done
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: create-apps
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: ACR login
+        run: az acr login --name $ACR_NAME
+
+      - name: Build and push Docker Compose images
+        run: |
+          docker compose build
+          docker compose push
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy updated container images
+        run: |
+          declare -A ports=(
+            [caption-generator-iep]=5001
+            [hashtag-generator-iep]=5002
+            [image-generator-iep]=5003
+            [keyword-suggester-iep]=5004
+            [past-tweet-analyzer-iep]=5005
+            [trend-analyzer-iep]=5006
+            [computer-vision-iep]=5021
+            [filter-iep]=5022
+            [engagement-prediction-iep]=5010
+          )
+
+          for service in "${!ports[@]}"; do
+            az containerapp update \
+              --name "$service" \
+              --resource-group $RESOURCE_GROUP \
+              --image $ACR_LOGIN_SERVER/$service:latest \
+              --container-name "$service"
+          done
