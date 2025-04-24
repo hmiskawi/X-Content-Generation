@@ -13,15 +13,15 @@ from typing import Optional, List, Dict, Any # Added more typing
 
 # --- Configuration (Same as before) ---
 IEP_SERVICE_URLS = {
-    "caption_generator": os.environ.get("CAPTION_GENERATOR_URL", "http://localhost:5011/generate/caption"),
-    "computer_vision": os.environ.get("COMPUTER_VISION_URL", "http://localhost:5012/describe_image"),
+    "caption_generator": os.environ.get("CAPTION_GENERATOR_URL", "http://localhost:5001/generate/caption"),
+    "computer_vision": os.environ.get("COMPUTER_VISION_URL", "http://localhost:5021/describe_image"),
     "engagement_prediction": os.environ.get("ENGAGEMENT_PREDICTOR_URL", "http://localhost:5010/predict"),
-    "filter": os.environ.get("FILTER_URL", "http://localhost:5013/filter"),
-    "hashtag_generator": os.environ.get("HASHTAG_GENERATOR_URL", "http://localhost:5014/generate/hashtags"),
-    "image_generator": os.environ.get("IMAGE_GENERATOR_URL", "http://localhost:5015/generate/image"),
-    "keyword_suggester": os.environ.get("KEYWORD_SUGGESTER_URL", "http://localhost:5016/generate/keywords"),
-    "past_tweet_analyzer": os.environ.get("PAST_TWEET_ANALYZER_URL", "http://localhost:5017/analyze/past-tweets"),
-    "trend_analyzer": os.environ.get("TREND_ANALYZER_URL", "http://localhost:5018/analyze/trends"),
+    "filter": os.environ.get("FILTER_URL", "http://localhost:5022/filter"),
+    "hashtag_generator": os.environ.get("HASHTAG_GENERATOR_URL", "http://localhost:5002/generate/hashtags"),
+    "image_generator": os.environ.get("IMAGE_GENERATOR_URL", "http://localhost:5003/generate/image"),
+    "keyword_suggester": os.environ.get("KEYWORD_SUGGESTER_URL", "http://localhost:5004/generate/keywords"),
+    "past_tweet_analyzer": os.environ.get("PAST_TWEET_ANALYZER_URL", "http://localhost:5005/analyze/past-tweets"),
+    "trend_analyzer": os.environ.get("TREND_ANALYZER_URL", "http://localhost:5006/analyze/trends"),
 }
 OUTPUT_DIR = Path("../generated_content")
 IMAGE_OUTPUT_DIR = OUTPUT_DIR / "images"
