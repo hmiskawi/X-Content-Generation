@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY IEP/trend-analyzer/ .
 
 # Make port 5006 available
-EXPOSE 5006
+EXPOSE 5018
 
 # Define the command to run the application
 CMD ["python", "app.py"]
