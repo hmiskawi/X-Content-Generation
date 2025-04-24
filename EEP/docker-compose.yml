@@ -1,0 +1,147 @@
+version: '3.8' # Use a recent stable version
+
+services:
+  # --- Generation IEPs ---
+  caption_generator:
+    build:
+      context: .
+      dockerfile: ./IEP/caption-generator/Dockerfile
+    image: hmiskawi/caption-generator-iep:latest # Optional: Use pre-built image name
+    container_name: caption_generator_iep
+    restart: unless-stopped
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    ports:
+      - "5001:5001" # Host:Container
+    networks:
+      - xgen_network
+
+  hashtag_generator:
+    build:
+      context: .
+      dockerfile: ./IEP/hashtag-generator/Dockerfile
+    image: hmiskawi/hashtag-generator-iep:latest # Optional
+    container_name: hashtag_generator_iep
+    restart: unless-stopped
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    ports:
+      - "5002:5002"
+    networks:
+      - xgen_network
+
+  image_generator:
+    build:
+      context: .
+      dockerfile: ./IEP/image-generator/Dockerfile
+    image: hmiskawi/image-generator-iep:latest # Optional
+    container_name: image_generator_iep
+    restart: unless-stopped
+    environment:
+      - STABILITY_API_KEY=${STABILITY_API_KEY}
+      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
+      - AZURE_BLOB_CONTAINER_NAME=${AZURE_BLOB_CONTAINER_NAME}
+    ports:
+      - "5003:5003"
+    networks:
+      - xgen_network
+
+  keyword_suggester:
+    build:
+      context: .
+      dockerfile: ./IEP/keyword-suggester/Dockerfile
+    image: hmiskawi/keyword-suggester-iep:latest # Optional
+    container_name: keyword_suggester_iep
+    restart: unless-stopped
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    ports:
+      - "5004:5004"
+    networks:
+      - xgen_network
+
+  # --- Analysis IEPs ---
+  past_tweet_analyzer:
+    build:
+      context: .
+      dockerfile: ./IEP/past-tweet-analyzer/Dockerfile
+    image: hmiskawi/past-tweet-analyzer-iep:latest
+    container_name: past_tweet_analyzer_iep
+    restart: unless-stopped
+    environment:
+      - X_BEARER_TOKEN=${X_BEARER_TOKEN}
+    ports:
+      - "5005:5005"
+    networks:
+      - xgen_network
+
+  trend_analyzer:
+    build:
+      context: .
+      dockerfile: ./IEP/trend-analyzer/Dockerfile
+    image: hmiskawi/trend-analyzer-iep:latest
+    container_name: trend_analyzer_iep
+    restart: unless-stopped
+    environment:
+      - NEWS_API_KEY=${NEWS_API_KEY}
+    ports:
+      - "5006:5006"
+    networks:
+      - xgen_network
+
+  computer_vision:
+    build:
+      context: .
+      dockerfile: ./IEP/computer-vision/Dockerfile # Assuming path
+    # image: hmiskawi/computer-vision-iep:latest # Define if you build separately
+    container_name: computer_vision_iep
+    restart: unless-stopped
+    # Add environment variables if needed for this IEP
+    # environment:
+    #   - MODEL_URL=...
+    ports:
+      - "5021:5021"
+    networks:
+      - xgen_network
+    # Add volumes if models need to be mounted from host
+    # volumes:
+    #   - ./models/cv:/app/models
+
+  # --- Utility IEPs ---
+  filter:
+    build:
+      context: .
+      dockerfile: ./IEP/filter/Dockerfile # Assuming path
+    # image: hmiskawi/filter-iep:latest # Define if you build separately
+    container_name: filter_iep
+    restart: unless-stopped
+    # Add environment variables if needed
+    # environment:
+    #   - FILTER_LIST_URL=...
+    ports:
+      - "5022:5022"
+    networks:
+      - xgen_network
+
+  engagement_prediction:
+    build:
+      context: .
+      dockerfile: ./IEP/engagement-prediction/Dockerfile # Assuming path
+    # image: hmiskawi/engagement-prediction-iep:latest # Define if you build separately
+    container_name: engagement_prediction_iep
+    restart: unless-stopped
+    # Add environment variables if needed (e.g., path to model file if not copied in Dockerfile)
+    # environment:
+    #   - MODEL_PATH=/models/engagement_model.pkl # Example if waitress needs it
+    ports:
+      - "5010:5010"
+    networks:
+      - xgen_network
+    # Mount models directory if models are large and kept outside the image
+    # volumes:
+    #  - ./models/engagement:/app/models # Mount host ./models/engagement to /app/models in container
+
+# Define a common network for all IEPs (and potentially the EEP)
+networks:
+  xgen_network:
+    driver: bridge
