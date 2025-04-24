@@ -22,8 +22,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy the rest of the application code from the specific IEP directory into the container at /app
 COPY IEP/image-generator/ .
 
-# Make port 5003 available (using a different port)
-EXPOSE 5003
+# Make port 5015 available (using a different port)
+EXPOSE 5015
 
 # Define the command to run the application
 CMD ["python", "app.py"]
