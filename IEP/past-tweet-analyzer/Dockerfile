@@ -24,8 +24,8 @@ RUN python -m nltk.downloader stopwords punkt wordnet # Add wordnet if needed by
 # Copy the rest of the application code from the specific IEP directory into the container at /app
 COPY IEP/past-tweet-analyzer/ .
 
-# Make port 5005 available
-EXPOSE 5005
+# Make port 5017 available
+EXPOSE 5017
 
 # Define the command to run the application
 CMD ["python", "app.py"]
