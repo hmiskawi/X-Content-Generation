@@ -41,5 +41,5 @@ def caption_image():
     return jsonify({"caption": caption})
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5012))
+    port = int(os.environ.get("PORT", 5021))
     app.run(host='0.0.0.0', port=port)
