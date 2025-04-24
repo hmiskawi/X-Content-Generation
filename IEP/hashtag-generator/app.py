@@ -220,4 +220,4 @@ def generate_hashtags():
 # --- Run the App ---
 if __name__ == '__main__':
     # Use port 5002 (different from Caption Generator)
-    app.run(host='0.0.0.0', port=5002, debug=False)
+    app.run(host='0.0.0.0', port=5014, debug=False)
