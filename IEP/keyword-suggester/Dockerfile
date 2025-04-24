@@ -26,7 +26,7 @@ RUN python -m nltk.downloader wordnet punkt
 COPY IEP/keyword-suggester/ .
 
 # Make port 5004 available (using a different port)
-EXPOSE 5004
+EXPOSE 5016
 
 # Define the command to run the application
 CMD ["python", "app.py"]
