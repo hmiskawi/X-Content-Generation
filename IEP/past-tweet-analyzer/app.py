@@ -319,4 +319,4 @@ def analyze_tweets_endpoint():
 # --- Run the App ---
 if __name__ == '__main__':
     # Use port 5005
-    app.run(host='0.0.0.0', port=5017, debug=False)
+    app.run(host='0.0.0.0', port=5005, debug=False)
