@@ -36,61 +36,99 @@ NUM_CAPTION_CANDIDATES = 3 # Keep default internal generation count
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - [%(levelname)s] - %(message)s')
 
 # --- API Call Simulation (Updated Filter Simulation) ---
-def call_api(service_name: str, method: str = "POST", data: dict = None, files: dict = None) -> dict:
-    """Simulates calling an IEP API endpoint, respecting READMEs."""
+def call_api(service_name: str, method: str = "POST", data: Optional[Dict] = None, files: Optional[Dict] = None, timeout: int = DEFAULT_API_TIMEOUT) -> Dict:
+    """
+    Calls an IEP API endpoint using the requests library.
+
+    Args:
+        service_name: The key corresponding to the service in IEP_SERVICE_URLS.
+        method: HTTP method ('GET', 'POST'). Defaults to 'POST'.
+        data: Dictionary payload (sent as JSON for POST, query params for GET).
+        files: Dictionary for multipart/form-data file uploads (e.g., {'image': file_object}).
+               Only used for POST requests.
+        timeout: Request timeout in seconds.
+
+    Returns:
+        A dictionary containing the JSON response from the API,
+        or a dictionary with an 'error' key if the call fails.
+    """
     url = IEP_SERVICE_URLS.get(service_name)
     if not url:
         logging.error(f"Service URL for '{service_name}' not configured.")
-        return {"error": f"Service '{service_name}' URL not configured."}
+        return {"error": f"Service '{service_name}' URL not configured", "status_code": None}
 
-    log_data = data if data else {}
-    logging.info(f"Simulating {method} call to {service_name} at {url} with data keys: {list(log_data.keys())}")
+    # Prepare data (ensure None is handled gracefully)
+    request_data = data if data is not None else {}
+    request_files = files if files is not None else {}
+
+    # Log the call details (mask sensitive data if necessary in production)
+    logging.info(f"Making {method.upper()} request to {service_name} at {url} with data keys: {list(request_data.keys())}, files: {list(request_files.keys())}")
+
+    headers = {
+        "Accept": "application/json"
+        # Content-Type is typically handled by requests based on 'json' or 'files' params
+    }
 
     try:
-        time.sleep(random.uniform(0.1, 0.3))
-
-        # --- Mock Responses ---
-        if service_name == "trend_analyzer":
-             return {"global_trends": ["global event", "market news"], "tech_trends": ["AI release", "cloud update"], "cultural_trends": ["new movie", "music awards"], "top_hashtags": ["#News", "#AI", "#WebDev"]}
-        elif service_name == "past_tweet_analyzer":
-             user = data.get("username", DEFAULT_USERNAME); themes = ["AI updates", f"{user} product news"] if user != DEFAULT_USERNAME else ["general business", "tech trends"]
-             return {"common_themes": themes, "tweeting_style": "informative, questions", "tone": "professional", "typical_hashtags": ["#AI", "#Tech", f"#{user}Update"], "emoji_usage": "moderate"}
-        elif service_name == "keyword_suggester":
-             original_kws = data.get("keywords", ["generic"]); return {"improved_keywords": original_kws + ["enhanced" + kw for kw in original_kws] + ["buzzword"]}
-        elif service_name == "computer_vision":
-             return {"description": f"Mock description: Graphic about {random.choice(['data', 'code', 'future'])}."}
-        elif service_name == "image_generator":
-             prompt = data.get("prompt", "default image"); theme = data.get("theme",""); style=data.get("style_preference","abstract")
-             ts = int(time.time()*1000); dummy_filename = f"generated_img_{theme}_{style}_{ts}.png"; img_path = IMAGE_OUTPUT_DIR / dummy_filename; img_path.touch(); simulated_url = f"https://simulatedstorage.blob.core.windows.net/images/{dummy_filename}"; logging.info(f"Simulated image gen (theme: {theme}, style: {style}), file: {img_path}, URL: {simulated_url}"); return {"image_url": simulated_url, "prompt_used": prompt}
-        elif service_name == "caption_generator":
-            context = data.get('context_summary', 'our latest news'); style = data.get('user_profile_summary', 'standard'); theme = data.get('requested_theme', 'general'); rand_num = random.randint(1, 100)
-            return {"caption": f"Caption #{rand_num} ({theme}): Discover {context}! Aligned with {style}. #Generated"}
-        elif service_name == "hashtag_generator":
-            context = data.get("content_context", ""); kw = context.split()[1] if len(context.split()) > 1 else "topic"; count = data.get("desired_count", 4); theme = data.get("theme","")
-            return {"hashtags": [f"#{kw}{random.randint(1,5)}"] + [f"#{theme}{i+1}" for i in range(count - 1)]} # Add theme based hashtags
-        elif service_name == "filter":
-             # Input: {"text": ..., "theme": ...}
-             text = data.get('text', '').lower()
-             theme = data.get('theme', 'General').lower()
-             # Simple theme-based filtering simulation
-             if theme == "memes" and any(word in text for word in ["formal", "report", "serious"]):
-                  return {"status": "CAN BE CHANGED", "reason": "Text seems too formal for meme theme."}
-             if theme == "serious" and any(word in text for word in ["lol", "rofl", "lmao", "dumb"]):
-                  return {"status": "CAN BE CHANGED", "reason": "Text seems too informal for serious theme."}
-             # General problematic words
-             if any(word in text for word in ["badword", "controversial", "forbidden"]): return {"status": "NOT OK", "reason": "Contains problematic term."}
-             return {"status": "OK"}
-        elif service_name == "engagement_prediction":
-             base = 0.7 + random.uniform(-0.2, 0.2); media_boost = 0.3 if data.get('has_media') == 1 else 0; length_boost = min(0.5, len(data.get('text','')) / 400.0)
-             return {"predicted_relative_engagement": round(base + media_boost + length_boost, 4)}
+        response = None
+        if method.upper() == "POST":
+            if request_files:
+                # Send as multipart/form-data if files are present
+                # 'data' here should contain non-file form fields
+                response = requests.post(url, data=request_data, files=request_files, headers=headers, timeout=timeout)
+            else:
+                # Send as JSON payload if no files
+                response = requests.post(url, json=request_data, headers=headers, timeout=timeout)
+        elif method.upper() == "GET":
+            response = requests.get(url, params=request_data, headers=headers, timeout=timeout)
         else:
-            logging.error(f"No mock response defined for service: {service_name}")
-            return {"error": f"Mock response for '{service_name}' not implemented."}
+            logging.error(f"Unsupported HTTP method '{method}' for service {service_name}")
+            return {"error": f"Unsupported HTTP method: {method}", "status_code": None}
+
+        # Raise an exception for bad status codes (4xx or 5xx)
+        response.raise_for_status()
+
+        # Attempt to parse the JSON response
+        try:
+            response_json = response.json()
+            logging.info(f"Received successful response from {service_name} (Status: {response.status_code})")
+            # logging.debug(f"Response JSON from {service_name}: {response_json}") # Be careful logging full responses
+            return response_json
+        except json.JSONDecodeError as json_err:
+            logging.error(f"Failed to decode JSON response from {service_name} (Status: {response.status_code}). Response text: {response.text[:500]}...") # Log beginning of text
+            return {"error": "Invalid JSON response from service", "status_code": response.status_code, "details": str(json_err)}
+
+    except requests.exceptions.HTTPError as http_err:
+        # Handle HTTP errors (e.g., 404 Not Found, 500 Internal Server Error)
+        error_details = f"HTTP Error: {http_err}"
+        try:
+            # Try to get more details from the response body if possible
+            error_body = http_err.response.json()
+            error_details += f" - Response: {error_body}"
+        except json.JSONDecodeError:
+            error_details += f" - Response Text: {http_err.response.text[:500]}..."
+        except Exception: # Catch other potential issues with accessing response
+             pass
+        logging.error(f"API call failed for {service_name} (Status: {http_err.response.status_code}). {error_details}")
+        return {"error": "HTTP error calling service", "status_code": http_err.response.status_code, "details": error_details}
+
+    except requests.exceptions.ConnectionError as conn_err:
+        logging.error(f"API call failed for {service_name}. Could not connect to {url}. Error: {conn_err}")
+        return {"error": "Connection error calling service", "status_code": None, "details": str(conn_err)}
+
+    except requests.exceptions.Timeout as timeout_err:
+        logging.error(f"API call timed out for {service_name} after {timeout}s. Error: {timeout_err}")
+        return {"error": "Request timed out calling service", "status_code": None, "details": str(timeout_err)}
+
+    except requests.exceptions.RequestException as req_err:
+        # Catch other potential request errors
+        logging.error(f"API call failed for {service_name}. Error: {req_err}", exc_info=True)
+        return {"error": "General request error calling service", "status_code": None, "details": str(req_err)}
 
     except Exception as e:
-        logging.error(f"Error during API call simulation for {service_name}: {e}", exc_info=True)
-        return {"error": f"Simulation error: {e}"}
-
+        # Catch any other unexpected errors during the process
+        logging.error(f"An unexpected error occurred when calling {service_name}: {e}", exc_info=True)
+        return {"error": "An unexpected error occurred", "status_code": None, "details": str(e)}
 
 # --- Main Orchestration Function ---
 def generate_post_candidates(username: str,
