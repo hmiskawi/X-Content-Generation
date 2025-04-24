@@ -9,5 +9,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-EXPOSE 5022
+EXPOSE 5013
 CMD ["python", "filter_app.py"]
