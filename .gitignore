@@ -1,4 +1,6 @@
 .env
 /tests
 pytest.ini
-/models
+/IEP/filter/filtering_model
+/IEP/engagement-prediction/models
+/IEP/engagement-prediction/text_encoder

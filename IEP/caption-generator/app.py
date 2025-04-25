@@ -15,11 +15,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 app = Flask(__name__)
 
 # Configure Google Generative AI Client
-google_api_key = os.getenv("GOOGLE_API_KEY") # <<< CHANGED
+google_api_key = os.getenv("GOOGLE_API_KEY")
 if not google_api_key:
-    logging.error("FATAL: GOOGLE_API_KEY environment variable not set.") # <<< CHANGED
-    # Decide how to handle this - exit or let it fail later?
-    # For now, we allow startup but API calls will fail.
+    logging.error("FATAL: GOOGLE_API_KEY environment variable not set.")
+
 else:
     try:
         genai.configure(api_key=google_api_key)
@@ -27,7 +26,7 @@ else:
     except Exception as e:
         # Catch potential configuration errors (though less common than client calls)
         logging.error(f"Failed to configure Google Generative AI: {e}", exc_info=True)
-        google_api_key = None # Ensure we know configuration failed
+        google_api_key = None
 
 # Default values
 DEFAULT_TONE = "informative"
@@ -89,7 +88,7 @@ def generate_caption():
     Expects JSON input with 'context_summary' and optional fields.
     Returns JSON output with the generated 'caption'.
     """
-    if not google_api_key: # Check if configuration failed earlier
+    if not google_api_key:
         logging.error("Google Generative AI client not configured. Check API key.")
         return jsonify({"error": "Google AI client configuration error"}), 500
 
@@ -108,7 +107,7 @@ def generate_caption():
 
     # --- Get Optional Parameters ---
     user_profile_summary = data.get('user_profile_summary', None)
-    relevant_trends = data.get('relevant_trends', []) # Expecting a list
+    relevant_trends = data.get('relevant_trends', [])
     tone_preference = data.get('tone_preference', DEFAULT_TONE)
     max_length = data.get('max_length', DEFAULT_MAX_LENGTH)
 
@@ -164,16 +163,15 @@ def generate_caption():
 
         return jsonify({
             "caption": generated_caption,
-            # "alternatives": [] # Add alternatives if implemented
             }), 200
 
     # --- Specific Google API Error Handling ---
     except google_exceptions.PermissionDenied as e:
         logging.error(f"Google API Permission Denied (check API key?): {e}", exc_info=True)
-        return jsonify({"error": f"Google API Permission Denied: {str(e)}"}), 500 # Or 403?
+        return jsonify({"error": f"Google API Permission Denied: {str(e)}"}), 500
     except google_exceptions.ResourceExhausted as e:
          logging.error(f"Google API Quota Exceeded: {e}", exc_info=True)
-         return jsonify({"error": f"Google API Quota Exceeded: {str(e)}"}), 429 # 429 Too Many Requests
+         return jsonify({"error": f"Google API Quota Exceeded: {str(e)}"}), 429
     except google_exceptions.InvalidArgument as e:
          logging.error(f"Google API Invalid Argument (check prompt/params?): {e}", exc_info=True)
          return jsonify({"error": f"Google API Invalid Argument: {str(e)}"}), 400
@@ -187,6 +185,4 @@ def generate_caption():
 
 # --- Run the App ---
 if __name__ == '__main__':
-    # Host '0.0.0.0' makes it accessible within the Docker network
-    # Port 5001 is an example, choose a unique port for this IEP
     app.run(host='0.0.0.0', port=5001, debug=False)

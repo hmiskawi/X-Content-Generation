@@ -6,7 +6,7 @@ import torch.nn.functional as F
 app = Flask(__name__)
 
 # Load model and tokenizer
-model_name = "filtering_model"  # Replace with your local or HuggingFace model path
+model_name = "/app/filtering_model"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForSequenceClassification.from_pretrained(model_name)
 model.eval()

@@ -154,14 +154,7 @@ def predict():
         # error_details = traceback.format_exc()
         return jsonify({"error": "Internal error during prediction.", "details": str(e)}), 500
 
-# This part is mainly for local execution, not used by Docker CMD/Waitress
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5010)) # Use 5010 as default
-    # Use Waitress for production-like local testing
-    try:
-        from waitress import serve
-        logger.info(f"Starting Waitress server locally on http://0.0.0.0:{port}")
-        serve(app, host='0.0.0.0', port=port)
-    except ImportError:
-        logger.warning("Waitress not found. Falling back to Flask development server (not recommended for production testing).")
-        app.run(debug=False, host='0.0.0.0', port=port) # Set debug=False for production-like test
+    port = int(os.environ.get("PORT", 5010))
+    logger.info(f"Starting Flask development server locally on http://0.0.0.0:{port}")
+    app.run(host='0.0.0.0', port=port, debug=False)

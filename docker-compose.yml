@@ -1,15 +1,42 @@
 version: '3.8' # Use a recent stable version
 
 services:
+
+  # --- Orchestrator (EEP) ---
+  eep_ui:
+    build:
+      context: .
+      dockerfile: ./EEP/Dockerfile
+    image: hmiskawi/eep-ui:latest # Optional: Use pre-built image name
+    container_name: eep_ui_service
+    restart: unless-stopped
+    ports:
+      - "5050:5050"
+    networks:
+      - xgen_network
+    environment:
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}
+    depends_on:
+      - caption_generator
+      - hashtag_generator
+      - image_generator
+      - keyword_suggester
+      - past_tweet_analyzer
+      - trend_analyzer
+      - computer_vision
+      - filter
+      - engagement_prediction
+
   # --- Generation IEPs ---
   caption_generator:
     build:
       context: .
       dockerfile: ./IEP/caption-generator/Dockerfile
-    image: hmiskawi/caption-generator-iep:latest # Optional: Use pre-built image name
+    image: hmiskawi/caption-generator-iep:latest
     container_name: caption_generator_iep
     restart: unless-stopped
     environment:
+      # GOOGLE_API_KEY is read from the .env file in the same directory as docker-compose.yml
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
     ports:
       - "5001:5001" # Host:Container
@@ -20,7 +47,7 @@ services:
     build:
       context: .
       dockerfile: ./IEP/hashtag-generator/Dockerfile
-    image: hmiskawi/hashtag-generator-iep:latest # Optional
+    image: hmiskawi/hashtag-generator-iep:latest
     container_name: hashtag_generator_iep
     restart: unless-stopped
     environment:
@@ -34,7 +61,7 @@ services:
     build:
       context: .
       dockerfile: ./IEP/image-generator/Dockerfile
-    image: hmiskawi/image-generator-iep:latest # Optional
+    image: hmiskawi/image-generator-iep:latest
     container_name: image_generator_iep
     restart: unless-stopped
     environment:
@@ -50,7 +77,7 @@ services:
     build:
       context: .
       dockerfile: ./IEP/keyword-suggester/Dockerfile
-    image: hmiskawi/keyword-suggester-iep:latest # Optional
+    image: hmiskawi/keyword-suggester-iep:latest
     container_name: keyword_suggester_iep
     restart: unless-stopped
     environment:
@@ -92,32 +119,23 @@ services:
   computer_vision:
     build:
       context: .
-      dockerfile: ./IEP/computer-vision/Dockerfile # Assuming path
-    # image: hmiskawi/computer-vision-iep:latest # Define if you build separately
+      dockerfile: ./IEP/computer-vision/Dockerfile
+    image: hmiskawi/computer-vision-iep:latest # Recommended to add image name
     container_name: computer_vision_iep
     restart: unless-stopped
-    # Add environment variables if needed for this IEP
-    # environment:
-    #   - MODEL_URL=...
     ports:
       - "5021:5021"
     networks:
       - xgen_network
-    # Add volumes if models need to be mounted from host
-    # volumes:
-    #   - ./models/cv:/app/models
 
   # --- Utility IEPs ---
   filter:
     build:
       context: .
-      dockerfile: ./IEP/filter/Dockerfile # Assuming path
-    # image: hmiskawi/filter-iep:latest # Define if you build separately
+      dockerfile: ./IEP/filter/Dockerfile
+    image: hmiskawi/filter-iep:latest # Recommended to add image name
     container_name: filter_iep
     restart: unless-stopped
-    # Add environment variables if needed
-    # environment:
-    #   - FILTER_LIST_URL=...
     ports:
       - "5022:5022"
     networks:
@@ -126,22 +144,27 @@ services:
   engagement_prediction:
     build:
       context: .
-      dockerfile: ./IEP/engagement-prediction/Dockerfile # Assuming path
-    # image: hmiskawi/engagement-prediction-iep:latest # Define if you build separately
+      dockerfile: ./IEP/engagement-prediction/Dockerfile
+    image: hmiskawi/engagement-prediction-iep:latest # Recommended to add image name
     container_name: engagement_prediction_iep
     restart: unless-stopped
-    # Add environment variables if needed (e.g., path to model file if not copied in Dockerfile)
+    # Models are copied in the Dockerfile now.
+    # Add environment variables if needed (e.g., override model paths if desired)
     # environment:
-    #   - MODEL_PATH=/models/engagement_model.pkl # Example if waitress needs it
+    #   - LGBM_MODEL_PATH=/models/other_model.pkl
     ports:
       - "5010:5010"
     networks:
       - xgen_network
-    # Mount models directory if models are large and kept outside the image
-    # volumes:
-    #  - ./models/engagement:/app/models # Mount host ./models/engagement to /app/models in container
 
-# Define a common network for all IEPs (and potentially the EEP)
+# Define a common network for all services
 networks:
   xgen_network:
     driver: bridge
+
+# --- Important Notes ---
+# 1. This file assumes a ".env" file exists in the same directory (X-Content-Generation/)
+#    to provide values for ${GOOGLE_API_KEY}, ${STABILITY_API_KEY}, etc.
+# 2. Create local "./output" and "./input" directories in X-Content-Generation/ before running.
+# 3. Run the EEP orchestrator using:
+#    docker-compose run --rm eep <username> [options: --keyword <kw> --image_path /input/img.jpg --num_captions <n>]

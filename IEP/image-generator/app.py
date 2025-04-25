@@ -257,4 +257,4 @@ def generate_image():
 # --- Run the App ---
 if __name__ == '__main__':
     # Use port 5003 (different from other IEPs)
-    app.run(host='0.0.0.0', port=5015, debug=False)
+    app.run(host='0.0.0.0', port=5003, debug=False)

@@ -1,13 +1,5 @@
-# requirements.txt for EEP Orchestrator
-
-# Library for making HTTP requests to call IEP microservices/APIs
+# EEP/requirements.txt (Updated for UI + Orchestrator)
+Flask>=2.3.0
 requests>=2.25.0
-
-# Add other libraries IF the orchestrator script itself requires them.
-# For example, if loading configuration from YAML:
-# PyYAML>=5.1
-
-# Note: Dependencies for running the individual IEPs (like Flask, pandas,
-#       scikit-learn, xgboost, tensorflow, torch, Pillow, stability-sdk, etc.)
-#       belong in the requirements files of those specific IEP projects/services.
-#       This file only lists what the orchestrator needs to run its logic.
+python-dotenv>=1.0.0 # If needed by ui.py or main_generator.py
+Werkzeug>=2.0.0
