@@ -1,3 +1,4 @@
 .env
 /tests
 pytest.ini
+/models
