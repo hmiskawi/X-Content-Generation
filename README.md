@@ -42,16 +42,17 @@ graph TD
     User["Browser User"] -->|HTTP Request| EEP_UI["EEP UI Service (Flask)<br>Port 5050"];
     EEP_UI -->|Internal Call| Orchestrator["Orchestrator Logic<br>(main_generator.py)"];
 
-    subgraph IEP Microservices (Docker Network: xgen_network)
-        Orchestrator -->|HTTP API Call| PastTweet["past_tweet_analyzer<br>(Port: 5005)"];
-        Orchestrator -->|HTTP API Call| Trend["trend_analyzer<br>(Port: 5006)"];
-        Orchestrator -->|HTTP API Call| CV["computer_vision<br>(Port: 5021)"];
-        Orchestrator -->|HTTP API Call| ImgGen["image_generator<br>(Port: 5003)"];
-        Orchestrator -->|HTTP API Call| Caption["caption_generator<br>(Port: 5001)"];
-        Orchestrator -->|HTTP API Call| Hashtag["hashtag_generator<br>(Port: 5002)"];
-        Orchestrator -->|HTTP API Call| Filter["filter<br>(Port: 5022)"];
-        Orchestrator -->|HTTP API Call| Predict["engagement_prediction<br>(Port: 5010)"];
-        Orchestrator -->|HTTP API Call| Keyword["keyword_suggester<br>(Port: 5004)"];
+    subgraph IEP_Microservices_Network_xgen_network  // Simplified subgraph identifier/title
+        direction LR // Optional: Change layout within subgraph if desired
+        Orchestrator -->|HTTP API Call| PastTweet["past_tweet_analyzer<br>(Port 5005)"];
+        Orchestrator -->|HTTP API Call| Trend["trend_analyzer<br>(Port 5006)"];
+        Orchestrator -->|HTTP API Call| CV["computer_vision<br>(Port 5021)"];
+        Orchestrator -->|HTTP API Call| ImgGen["image_generator<br>(Port 5003)"];
+        Orchestrator -->|HTTP API Call| Caption["caption_generator<br>(Port 5001)"];
+        Orchestrator -->|HTTP API Call| Hashtag["hashtag_generator<br>(Port 5002)"];
+        Orchestrator -->|HTTP API Call| Filter["filter<br>(Port 5022)"];
+        Orchestrator -->|HTTP API Call| Predict["engagement_prediction<br>(Port 5010)"];
+        Orchestrator -->|HTTP API Call| Keyword["keyword_suggester<br>(Port 5004)"];
     end
 
     ImgGen -->|API Call| Stability["Stability AI API"];
