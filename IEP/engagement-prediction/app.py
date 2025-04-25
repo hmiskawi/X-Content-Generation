@@ -1,5 +1,3 @@
-# app/api.py
-
 import os
 import joblib
 import pandas as pd
@@ -9,31 +7,62 @@ import logging
 import traceback
 from flask import Flask, request, jsonify
 from pathlib import Path
+# Import necessary libraries used during training/preprocessing
+import lightgbm as lgb # Good practice, though joblib loads it
+from sentence_transformers import SentenceTransformer
 
 # --- Configuration ---
 SCRIPT_DIR = Path(__file__).resolve().parent
-# Model path relative to the 'app' directory (../models/)
-DEFAULT_MODEL_PATH = SCRIPT_DIR.parent / "models" / "engagement_model_pipeline.pkl"
-MODEL_PATH = os.environ.get("MODEL_PATH", DEFAULT_MODEL_PATH)
+# Default paths relative to the 'app' directory
+DEFAULT_LGBM_MODEL_PATH = SCRIPT_DIR.parent / "models" / "engagement_model.pkl"
+DEFAULT_ENCODER_PATH = SCRIPT_DIR.parent / "text_encoder" # Directory
+
+# Get paths from environment or use defaults
+LGBM_MODEL_PATH = Path(os.environ.get("LGBM_MODEL_PATH", DEFAULT_LGBM_MODEL_PATH))
+ENCODER_PATH = Path(os.environ.get("ENCODER_PATH", DEFAULT_ENCODER_PATH))
 
 # Setup basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# --- Load Model ---
-pipeline = None
-model_load_error = None
+# --- Load Models ---
+lgbm_model = None
+text_encoder = None
+model_load_error = "" # Accumulate errors
+
+# Load LGBM Model
 try:
-    logger.info(f"Attempting to load model pipeline from: {MODEL_PATH}")
-    if not Path(MODEL_PATH).is_file():
-        model_load_error = f"Model file not found at {MODEL_PATH}"
-        logger.error(model_load_error)
+    logger.info(f"Attempting to load LGBM model from: {LGBM_MODEL_PATH}")
+    if not LGBM_MODEL_PATH.is_file():
+        error_msg = f"LGBM Model file not found at {LGBM_MODEL_PATH}."
+        model_load_error += error_msg + " "
+        logger.error(error_msg)
     else:
-        pipeline = joblib.load(MODEL_PATH)
-        logger.info("Model pipeline loaded successfully.")
+        lgbm_model = joblib.load(LGBM_MODEL_PATH)
+        logger.info("LGBM model loaded successfully.")
 except Exception as e:
-    model_load_error = f"Failed to load model pipeline from {MODEL_PATH}. Error: {e}"
-    logger.error(model_load_error, exc_info=True)
+    error_msg = f"Failed to load LGBM model from {LGBM_MODEL_PATH}. Error: {e}"
+    model_load_error += error_msg + " "
+    logger.error(error_msg, exc_info=True)
+
+# Load Sentence Transformer
+try:
+    logger.info(f"Attempting to load Sentence Transformer from: {ENCODER_PATH}")
+    # Check if it's a directory and contains a typical config file
+    if not ENCODER_PATH.is_dir() or not (ENCODER_PATH / "config.json").is_file():
+         error_msg = f"Text encoder directory or essential files not found at {ENCODER_PATH}."
+         model_load_error += error_msg + " "
+         logger.error(error_msg)
+    else:
+        text_encoder = SentenceTransformer(str(ENCODER_PATH)) # Load from directory path
+        logger.info("Sentence Transformer loaded successfully.")
+except Exception as e:
+    error_msg = f"Failed to load Sentence Transformer from {ENCODER_PATH}. Error: {e}"
+    model_load_error += error_msg + " "
+    logger.error(error_msg, exc_info=True)
+
+model_load_error = model_load_error.strip() if model_load_error else None
+
 
 # --- Flask App ---
 app = Flask(__name__)
@@ -42,19 +71,27 @@ app = Flask(__name__)
 @app.route('/')
 def home():
     """Health check endpoint."""
-    model_status = "LOADED" if pipeline is not None else f"ERROR: {model_load_error}"
+    lgbm_status = "LOADED" if lgbm_model is not None else "ERROR"
+    encoder_status = "LOADED" if text_encoder is not None else "ERROR"
+    model_status = f"LGBM: {lgbm_status}, Encoder: {encoder_status}"
+    if model_load_error:
+        model_status += f" | Errors: {model_load_error}"
+
     return jsonify({
         "message": "Engagement Prediction API",
         "model_status": model_status,
-        "model_path_used": str(MODEL_PATH)
+        "lgbm_model_path_used": str(LGBM_MODEL_PATH),
+        "encoder_path_used": str(ENCODER_PATH)
     })
 
 @app.route('/predict', methods=['POST'])
 def predict():
     """Prediction endpoint."""
-    if pipeline is None:
-        logger.error("Prediction request failed: Model pipeline is not loaded.")
-        return jsonify({"error": "Model not available", "details": model_load_error}), 500
+    # Check if both models are loaded
+    if lgbm_model is None or text_encoder is None:
+        error_msg = "Prediction request failed: One or more models are not loaded."
+        logger.error(f"{error_msg} Details: {model_load_error}")
+        return jsonify({"error": error_msg, "details": model_load_error}), 500
 
     try:
         json_data = request.get_json(force=True)
@@ -64,7 +101,7 @@ def predict():
         logger.warning(f"Failed to get/parse JSON input: {e}")
         return jsonify({"error": f"Invalid JSON input: {e}"}), 400
 
-    # Validate required fields based on model training features
+    # Validate required fields from the API perspective
     required_input_fields = ["text", "has_media", "hour_of_day", "weekday"]
     missing_fields = [f for f in required_input_fields if f not in json_data]
     if missing_fields:
@@ -73,24 +110,37 @@ def predict():
         return jsonify({"error": msg}), 400
 
     try:
-        # Prepare DataFrame matching training structure
+        # --- Replicate Training Preprocessing ---
         input_text = str(json_data.get('text', ''))
-        input_data = {
-            'cleaned_text': [input_text], # Column expected by TF-IDF
-            'has_media': [int(json_data.get('has_media', 0))],
-            'hour_of_day': [int(json_data.get('hour_of_day', 12))],
-            'weekday': [int(json_data.get('weekday', 0))],
-            # Features calculated from text (as done during training preprocessing)
-            'num_hashtags': [len(re.findall(r"#(\w+)", input_text))],
-            'num_mentions': [len(re.findall(r"@(\w+)", input_text))],
-            'num_urls': [len(re.findall(r"http[s]?://\S+", input_text))],
-            'text_length': [len(input_text)]
-        }
-        input_df = pd.DataFrame(input_data)
-        logger.debug(f"Input DataFrame for prediction:\n{input_df.to_string()}")
 
-        # Make Prediction
-        prediction = pipeline.predict(input_df)
+        # 1. Get Text Embedding using loaded SentenceTransformer
+        # Pass text as a list, get NumPy array of shape (1, 384)
+        text_embedding = text_encoder.encode([input_text], normalize_embeddings=True)
+        logger.debug(f"Text embedding shape: {text_embedding.shape}")
+
+        # 2. Prepare Metadata Features (ensure type and order match training)
+        # Training used: ["text_length", "has_media", "hour", "weekday"]
+        text_length = len(input_text)
+        has_media = int(json_data.get('has_media', 0))
+        # Map API input 'hour_of_day' to training feature 'hour'
+        hour = int(json_data.get('hour_of_day', 12))
+        weekday = int(json_data.get('weekday', 0)) # Name matches training
+
+        # Create the metadata array in the exact order used for hstack during training
+        meta_features = np.array([[text_length, has_media, hour, weekday]]) # Shape (1, 4)
+        logger.debug(f"Meta features shape: {meta_features.shape}")
+        logger.debug(f"Meta features values: {meta_features}")
+
+        # 3. Combine features using hstack (ensure order matches training)
+        # Training used: np.hstack((X_text, X_meta))
+        final_features = np.hstack((text_embedding, meta_features)) # Shape (1, 384 + 4 = 388)
+        logger.debug(f"Final features shape for prediction: {final_features.shape}")
+
+        # --- Make Prediction using loaded LGBM model ---
+        # lgbm_model.predict expects a NumPy array
+        prediction = lgbm_model.predict(final_features)
+
+        # prediction is likely array([value]), extract the scalar
         output_prediction = float(prediction[0])
 
         # Format Response
@@ -100,16 +150,18 @@ def predict():
 
     except Exception as e:
         logger.error(f"Error during prediction processing: {e}", exc_info=True)
-        return jsonify({"error": "Internal error during prediction."}), 500
+        # Optionally include traceback in development/debug mode
+        # error_details = traceback.format_exc()
+        return jsonify({"error": "Internal error during prediction.", "details": str(e)}), 500
 
 # This part is mainly for local execution, not used by Docker CMD/Waitress
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5020)) # Use 5020 as default
-    # Use Waitress for local testing as well to mimic production better
+    port = int(os.environ.get("PORT", 5010)) # Use 5010 as default
+    # Use Waitress for production-like local testing
     try:
         from waitress import serve
         logger.info(f"Starting Waitress server locally on http://0.0.0.0:{port}")
         serve(app, host='0.0.0.0', port=port)
     except ImportError:
         logger.warning("Waitress not found. Falling back to Flask development server (not recommended for production testing).")
-        app.run(debug=False, host='0.0.0.0', port=port)
+        app.run(debug=False, host='0.0.0.0', port=port) # Set debug=False for production-like test

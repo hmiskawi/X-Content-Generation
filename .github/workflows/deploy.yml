@@ -1,0 +1,162 @@
+# .github/workflows/deploy_aks.yaml
+name: Build in ACR and Deploy IEPs to AKS
+
+on:
+  push:
+    branches: [ main ] # Trigger on push to the main branch
+  workflow_dispatch: # Allow manual triggering
+
+env:
+  # Azure Resources (Set from Secrets)
+  ACR_NAME: ${{ secrets.ACR_NAME }}
+  AKS_CLUSTER_NAME: ${{ secrets.AKS_CLUSTER_NAME }}
+  AKS_RESOURCE_GROUP: ${{ secrets.AKS_RESOURCE_GROUP }}
+
+  # ACR Image Name Suffixes (Derived from docker-compose container_name)
+  IMAGE_SUFFIX_CAPTION: caption_generator_iep
+  IMAGE_SUFFIX_HASHTAG: hashtag_generator_iep
+  IMAGE_SUFFIX_IMAGEGEN: image_generator_iep
+  IMAGE_SUFFIX_KEYWORD: keyword_suggester_iep
+  IMAGE_SUFFIX_PASTTWEET: past_tweet_analyzer_iep
+  IMAGE_SUFFIX_TREND: trend_analyzer_iep
+  IMAGE_SUFFIX_CV: computer_vision_iep
+  IMAGE_SUFFIX_FILTER: filter_iep
+  IMAGE_SUFFIX_ENGAGEMENT: engagement_prediction_iep
+
+  # Paths relative to Repo Root
+  DOCKERFILE_PATH_CAPTION: IEP/caption-generator/Dockerfile
+  DOCKERFILE_PATH_HASHTAG: IEP/hashtag-generator/Dockerfile
+  DOCKERFILE_PATH_IMAGEGEN: IEP/image-generator/Dockerfile
+  DOCKERFILE_PATH_KEYWORD: IEP/keyword-suggester/Dockerfile
+  DOCKERFILE_PATH_PASTTWEET: IEP/past-tweet-analyzer/Dockerfile
+  DOCKERFILE_PATH_TREND: IEP/trend-analyzer/Dockerfile
+  DOCKERFILE_PATH_CV: IEP/computer-vision/Dockerfile
+  DOCKERFILE_PATH_FILTER: IEP/filter/Dockerfile
+  DOCKERFILE_PATH_ENGAGEMENT: IEP/engagement-prediction/Dockerfile
+
+  # Build Context Path (Same for all based on docker-compose)
+  BUILD_CONTEXT_PATH: .
+
+jobs:
+  trigger_acr_builds:
+    name: Trigger ACR Builds for IEP Images
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.set_tag.outputs.tag }} # Output the commit SHA tag
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set Image Tag using Commit SHA
+      id: set_tag
+      run: echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    # --- Trigger ACR Build for Each IEP Image ---
+    - name: Build Caption Generator in ACR
+      run: |
+        az acr build --registry $ACR_NAME \
+          --image $ACR_NAME.azurecr.io/$IMAGE_SUFFIX_CAPTION:${{ steps.set_tag.outputs.tag }} \
+          --file ${{ env.DOCKERFILE_PATH_CAPTION }} \
+          ${{ env.BUILD_CONTEXT_PATH }}
+
+    - name: Build Hashtag Generator in ACR
+      run: |
+        az acr build --registry $ACR_NAME \
+          --image $ACR_NAME.azurecr.io/$IMAGE_SUFFIX_HASHTAG:${{ steps.set_tag.outputs.tag }} \
+          --file ${{ env.DOCKERFILE_PATH_HASHTAG }} \
+          ${{ env.BUILD_CONTEXT_PATH }}
+
+    - name: Build Image Generator in ACR
+      run: |
+        az acr build --registry $ACR_NAME \
+          --image $ACR_NAME.azurecr.io/$IMAGE_SUFFIX_IMAGEGEN:${{ steps.set_tag.outputs.tag }} \
+          --file ${{ env.DOCKERFILE_PATH_IMAGEGEN }} \
+          ${{ env.BUILD_CONTEXT_PATH }}
+
+    - name: Build Keyword Suggester in ACR
+      run: |
+        az acr build --registry $ACR_NAME \
+          --image $ACR_NAME.azurecr.io/$IMAGE_SUFFIX_KEYWORD:${{ steps.set_tag.outputs.tag }} \
+          --file ${{ env.DOCKERFILE_PATH_KEYWORD }} \
+          ${{ env.BUILD_CONTEXT_PATH }}
+
+    - name: Build Past Tweet Analyzer in ACR
+      run: |
+        az acr build --registry $ACR_NAME \
+          --image $ACR_NAME.azurecr.io/$IMAGE_SUFFIX_PASTTWEET:${{ steps.set_tag.outputs.tag }} \
+          --file ${{ env.DOCKERFILE_PATH_PASTTWEET }} \
+          ${{ env.BUILD_CONTEXT_PATH }}
+
+    - name: Build Trend Analyzer in ACR
+      run: |
+        az acr build --registry $ACR_NAME \
+          --image $ACR_NAME.azurecr.io/$IMAGE_SUFFIX_TREND:${{ steps.set_tag.outputs.tag }} \
+          --file ${{ env.DOCKERFILE_PATH_TREND }} \
+          ${{ env.BUILD_CONTEXT_PATH }}
+
+    - name: Build Computer Vision in ACR
+      run: |
+        az acr build --registry $ACR_NAME \
+          --image $ACR_NAME.azurecr.io/$IMAGE_SUFFIX_CV:${{ steps.set_tag.outputs.tag }} \
+          --file ${{ env.DOCKERFILE_PATH_CV }} \
+          ${{ env.BUILD_CONTEXT_PATH }}
+
+    - name: Build Filter in ACR
+      run: |
+        az acr build --registry $ACR_NAME \
+          --image $ACR_NAME.azurecr.io/$IMAGE_SUFFIX_FILTER:${{ steps.set_tag.outputs.tag }} \
+          --file ${{ env.DOCKERFILE_PATH_FILTER }} \
+          ${{ env.BUILD_CONTEXT_PATH }}
+
+    - name: Build Engagement Prediction in ACR
+      run: |
+        az acr build --registry $ACR_NAME \
+          --image $ACR_NAME.azurecr.io/$IMAGE_SUFFIX_ENGAGEMENT:${{ steps.set_tag.outputs.tag }} \
+          --file ${{ env.DOCKERFILE_PATH_ENGAGEMENT }} \
+          ${{ env.BUILD_CONTEXT_PATH }}
+
+  deploy_to_aks:
+    name: Deploy IEPs to AKS
+    runs-on: ubuntu-latest
+    needs: trigger_acr_builds # Ensure builds are triggered first
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Set AKS Context
+      uses: azure/aks-set-context@v3
+      with:
+        resource-group: ${{ env.AKS_RESOURCE_GROUP }}
+        cluster-name: ${{ env.AKS_CLUSTER_NAME }}
+
+    - name: Deploy to AKS using Kubernetes Manifests
+      uses: Azure/k8s-deploy@v4
+      with:
+        action: 'deploy'
+        # Assumes your manifests are in a top-level 'kubernetes' directory
+        manifests: |
+          kubernetes/*.yaml
+        # Substitute the image tags in the deployment manifests
+        images: |
+          ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_SUFFIX_CAPTION }}:${{ needs.trigger_acr_builds.outputs.image_tag }}
+          ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_SUFFIX_HASHTAG }}:${{ needs.trigger_acr_builds.outputs.image_tag }}
+          ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_SUFFIX_IMAGEGEN }}:${{ needs.trigger_acr_builds.outputs.image_tag }}
+          ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_SUFFIX_KEYWORD }}:${{ needs.trigger_acr_builds.outputs.image_tag }}
+          ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_SUFFIX_PASTTWEET }}:${{ needs.trigger_acr_builds.outputs.image_tag }}
+          ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_SUFFIX_TREND }}:${{ needs.trigger_acr_builds.outputs.image_tag }}
+          ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_SUFFIX_CV }}:${{ needs.trigger_acr_builds.outputs.image_tag }}
+          ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_SUFFIX_FILTER }}:${{ needs.trigger_acr_builds.outputs.image_tag }}
+          ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_SUFFIX_ENGAGEMENT }}:${{ needs.trigger_acr_builds.outputs.image_tag }}
+        # namespace: 'default' # Specify if not using default namespace

@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy the rest of the application code (e.g., app.py) into the container at /app
 COPY IEP/caption-generator/ .
 
-# Make port 5001 available to the network outside this container (but not necessarily to the host)
+# Make port 5011 available to the network outside this container (but not necessarily to the host)
 # This is the port Flask app listens on as defined in app.py
 EXPOSE 5001
 
