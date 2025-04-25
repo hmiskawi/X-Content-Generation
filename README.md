@@ -2,7 +2,7 @@
 
 ## Overview
 
-X-Content-Generation is a powerful application designed to assist users in creating engaging content suggestions for X.com (formerly Twitter). It leverages a suite of specialized AI/ML microservices (Intelligent Execution Primitives - IEPs) orchestrated by a central web UI (External Execution Platform UI - EEP UI) to analyze context, generate text and images, filter content, and predict engagement.
+X-Content-Generation is a powerful application designed to assist users in creating engaging content suggestions for X.com (formerly Twitter). It leverages a suite of specialized AI/ML microservices orchestrated by a central web UI to analyze context, generate text and images, filter content, and predict engagement.
 
 The goal is to provide users with high-quality, contextually relevant post suggestions tailored to their profile and desired topic, potentially including generated visuals.
 
@@ -39,34 +39,34 @@ The application follows a microservice architecture:
 
 ```mermaid
 graph TD
-    User[Browser User] -->|HTTP Request| EEP_UI[EEP UI Service (Flask):<br>Port 5050];
-    EEP_UI -->|Internal Call| Orchestrator[Orchestrator Logic<br>(main_generator.py)];
+    User["Browser User"] -->|HTTP Request| EEP_UI["EEP UI Service (Flask)<br>Port 5050"];
+    EEP_UI -->|Internal Call| Orchestrator["Orchestrator Logic<br>(main_generator.py)"];
 
     subgraph IEP Microservices (Docker Network: xgen_network)
-        Orchestrator -->|HTTP API Call| PastTweet[past_tweet_analyzer<br>:5005];
-        Orchestrator -->|HTTP API Call| Trend[trend_analyzer<br>:5006];
-        Orchestrator -->|HTTP API Call| CV[computer_vision<br>:5021];
-        Orchestrator -->|HTTP API Call| ImgGen[image_generator<br>:5003];
-        Orchestrator -->|HTTP API Call| Caption[caption_generator<br>:5001];
-        Orchestrator -->|HTTP API Call| Hashtag[hashtag_generator<br>:5002];
-        Orchestrator -->|HTTP API Call| Filter[filter<br>:5022];
-        Orchestrator -->|HTTP API Call| Predict[engagement_prediction<br>:5010];
-        Orchestrator -->|HTTP API Call| Keyword[keyword_suggester<br>:5004];
+        Orchestrator -->|HTTP API Call| PastTweet["past_tweet_analyzer<br>(Port: 5005)"];
+        Orchestrator -->|HTTP API Call| Trend["trend_analyzer<br>(Port: 5006)"];
+        Orchestrator -->|HTTP API Call| CV["computer_vision<br>(Port: 5021)"];
+        Orchestrator -->|HTTP API Call| ImgGen["image_generator<br>(Port: 5003)"];
+        Orchestrator -->|HTTP API Call| Caption["caption_generator<br>(Port: 5001)"];
+        Orchestrator -->|HTTP API Call| Hashtag["hashtag_generator<br>(Port: 5002)"];
+        Orchestrator -->|HTTP API Call| Filter["filter<br>(Port: 5022)"];
+        Orchestrator -->|HTTP API Call| Predict["engagement_prediction<br>(Port: 5010)"];
+        Orchestrator -->|HTTP API Call| Keyword["keyword_suggester<br>(Port: 5004)"];
     end
 
-    ImgGen -->|API Call| Stability[Stability AI API];
-    ImgGen -->|Blob Upload| Azure[Azure Blob Storage];
-    Caption -->|API Call| Gemini[Google Gemini API];
+    ImgGen -->|API Call| Stability["Stability AI API"];
+    ImgGen -->|Blob Upload| Azure["Azure Blob Storage"];
+    Caption -->|API Call| Gemini["Google Gemini API"];
     Hashtag -->|API Call| Gemini;
     Keyword -->|API Call| Gemini;
-    PastTweet -->|API Call| XAPI[X.com API v2];
-    Trend -->|Lib Call| GTr[Google Trends];
-    Trend -->|API Call| News[NewsAPI];
+    PastTweet -->|API Call| XAPI["X.com API v2"];
+    Trend -->|Lib Call| GTr["Google Trends"];
+    Trend -->|API Call| News["NewsAPI"];
 
-    Filter -->|Load Model| HF_Filter[Local Filter Model];
-    CV -->|Load Model| HF_BLIP[Hugging Face BLIP Model];
-    Predict -->|Load Model| LEncoder[Local Sentence Transformer];
-    Predict -->|Load Model| LModel[Local LGBM Model];
+    Filter -->|Load Model| HF_Filter["Local Filter Model"];
+    CV -->|Load Model| HF_BLIP["Hugging Face BLIP Model"];
+    Predict -->|Load Model| LEncoder["Local Sentence Transformer"];
+    Predict -->|Load Model| LModel["Local LGBM Model"];
 
     Orchestrator -->|Result| EEP_UI;
     EEP_UI -->|HTTP Response| User;
