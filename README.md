@@ -185,7 +185,7 @@ Follow these steps to configure, build, and run the entire application stack loc
 
 1.  **Clone Repository:** If you haven't already, clone the project repository and navigate into the project root directory (`X-Content-Generation/`).
     ```bash
-    git clone <your-repository-url>
+    git clone https://github.com/hmiskawi/X-Content-Generation.git
     cd X-Content-Generation
     ```
 2.  **Create/Populate `.env`:** Create a file named `.env` in the `X-Content-Generation/` root directory. **Important:** Add `.env` to your `.gitignore` file to prevent committing secrets.
