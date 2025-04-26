@@ -74,6 +74,7 @@ graph TD
 
     style User fill:#fff,stroke:#333,stroke-width:2px
     style EEP_UI fill:#ccf,stroke:#333,stroke-width:2px
+```
 
 ## Tech Stack
 
@@ -174,8 +175,8 @@ Follow these steps to configure, build, and run the entire application stack loc
 *   **Docker:** Ensure Docker Desktop (Windows/Mac) or Docker Engine (Linux) is installed and running.
 *   **Docker Compose:** Ensure Docker Compose (v1 or v2) is installed.
 *   **Git:** Ensure Git is installed to clone the repository.
-*   **API Keys & Credentials:** Obtain the necessary API keys and credentials as listed in [TECH_STACK.md](TECH_STACK.md) (Google AI, Stability AI, X.com Bearer Token, NewsAPI, Azure Storage Connection String & Container Name).
-*   **Local Model Files:** Download or train the required local models and place them in the correct directories as specified in [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md):
+*   **API Keys & Credentials:** Obtain the necessary API keys and credentials(Google AI, Stability AI, X.com Bearer Token, NewsAPI, Azure Storage Connection String & Container Name).
+*   **Local Model Files:** Download or train the required local models and place them in the correct directories:
     *   `./IEP/engagement-prediction/models/engagement_model.pkl`
     *   `./IEP/engagement-prediction/text_encoder/` (directory containing Sentence Transformer files)
     *   `./IEP/filter/filtering_model/` (directory containing the filter model files)
@@ -187,7 +188,7 @@ Follow these steps to configure, build, and run the entire application stack loc
     git clone <your-repository-url>
     cd X-Content-Generation
     ```
-2.  **Create/Populate `.env`:** Create a file named `.env` in the `X-Content-Generation/` root directory. **Important:** Add `.env` to your `.gitignore` file to prevent committing secrets. See [SECURITY.md](SECURITY.md).
+2.  **Create/Populate `.env`:** Create a file named `.env` in the `X-Content-Generation/` root directory. **Important:** Add `.env` to your `.gitignore` file to prevent committing secrets.
 3.  **Generate Flask Secret:** Create a strong random string for the Flask UI's secret key:
     ```bash
     # Using Python
