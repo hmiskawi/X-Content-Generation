@@ -100,7 +100,7 @@ graph TD
 *   **Other:** `requests`, `python-dotenv`, `joblib`
 
 ## Project Structure
-
+```
 X-Content-Generation/
 ├── .github/ # CI/CD workflows (e.g., deployment)
 │ └── workflows/
@@ -165,7 +165,7 @@ X-Content-Generation/
 ├── .env # Local environment variables (API Keys - DO NOT COMMIT)
 ├── docker-compose.yml # Defines and configures all services
 └── README.md # Main project README
-
+```
 # Setup and Local Execution Instructions
 
 Follow these steps to configure, build, and run the entire application stack locally using Docker Compose.
